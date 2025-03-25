@@ -7,9 +7,11 @@
  * @component
  */
 
+import { useMemo } from "react";
 import { Stack } from "react-bootstrap";
 import { useFetchRecipientUser } from "../../hooks/useFetchRecipient";
 import avatar from "../../assets/profile.svg";
+import { useSelector } from "react-redux";
 
 /**
  * UserChat Component
@@ -30,6 +32,11 @@ import avatar from "../../assets/profile.svg";
 const UserChat = ({ chat, user }) => {
   // Fetch recipient user details using custom hook
   const { recipientUser } = useFetchRecipientUser(chat, user);
+  const { onlineUsers } = useSelector((state) => state.chat);
+
+  const isOnline = useMemo(() => {
+    return onlineUsers.some((user) => user?.userId === recipientUser?._id);
+  }, [onlineUsers, recipientUser?._id]);
 
   return (
     <Stack
@@ -57,7 +64,7 @@ const UserChat = ({ chat, user }) => {
         {/* Unread message count */}
         <div className="this-user-notifications">2</div>
         {/* Online status indicator */}
-        <span className="user-online"></span>
+        <span className={`${isOnline ? "user-online" : ""}`}></span>
       </div>
     </Stack>
   );

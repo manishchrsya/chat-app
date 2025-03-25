@@ -26,6 +26,10 @@ const initialState = {
   messages: null,
   isMessagesLoading: false,
   messagesError: null,
+  sendTextMessageError: null,
+  socket: null,
+  onlineUsers: [],
+  newMessage: null,
 };
 
 /**
@@ -67,6 +71,9 @@ const chatSlice = createSlice({
     setMessages: (state, action) => {
       state.messages = action.payload;
     },
+    addMessage: (state, action) => {
+      state.messages = [...state.messages, action.payload];
+    },
     /**
      * Sets loading state for user chats
      * @param {Object} state - Current state
@@ -107,6 +114,18 @@ const chatSlice = createSlice({
     addNewChat: (state, action) => {
       state.userChats = [...state.userChats, action.payload];
     },
+    setSendTextMessageError: (state, action) => {
+      state.sendTextMessageError = action.payload;
+    },
+    setSocket: (state, action) => {
+      state.socket = action.payload;
+    },
+    setOnlineUsers: (state, action) => {
+      state.onlineUsers = action.payload;
+    },
+    setNewMessage: (state, action) => {
+      state.newMessage = action.payload;
+    }
   },
 });
 
@@ -121,6 +140,11 @@ export const {
   setUserChatsError,
   setMessagesError,
   addNewChat,
+  setNewMessage,
+  setSendTextMessageError,
+  addMessage,
+  setSocket,
+  setOnlineUsers,
 } = chatSlice.actions;
 
 export default chatSlice.reducer;

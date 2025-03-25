@@ -18,6 +18,9 @@ import {
   setUserChatsError,
   setMessagesError,
   addNewChat,
+  setSendTextMessageError,
+  addMessage,
+  setNewMessage
 } from "../slices/chatSlice";
 
 /**
@@ -126,5 +129,28 @@ export const createNewChat = (firstId, secondId) => async (dispatch) => {
     dispatch(addNewChat(response));
   } catch (error) {
     console.error("Error creating chat:", error);
+  }
+};
+
+export const sendTextMessage = (textMessage, sender, currentChatId, setTextMessage) => async (dispatch) => {
+  if (!textMessage) {
+    return;
+  }
+  try {
+    const payload = {
+      chatId: currentChatId,
+      senderId: sender?._id,
+      text: textMessage
+    };
+    const response = await postRequest("messages", payload);
+    if (response.error) {
+      dispatch(setSendTextMessageError(response));
+      return console.log("Error sending message", response);
+    }
+    dispatch(setNewMessage(response));
+    dispatch(addMessage(response));
+    setTextMessage("");
+  } catch (error) {
+    console.error("Error sending message", error);
   }
 };

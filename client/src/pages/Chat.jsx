@@ -7,14 +7,15 @@
  * @component
  */
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Container, Stack } from "react-bootstrap";
 import UserChat from "../components/chat/userChat";
 import PotentialChats from "../components/chat/potentialChats";
 import ChatBox from "../components/chat/chatBox";
 import { fetchUserChats } from "../store/thunks/chatThunks";
-import { setCurrentChat } from "../store/slices/chatSlice";
+import { addMessage, setCurrentChat, setOnlineUsers } from "../store/slices/chatSlice";
+import { io } from "socket.io-client";
 
 /**
  * Chat Component
@@ -26,10 +27,56 @@ import { setCurrentChat } from "../store/slices/chatSlice";
  *
  * @returns {JSX.Element} The rendered Chat component
  */
+
 const Chat = () => {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
-  const { userChats, isUserChatsLoading } = useSelector((state) => state.chat);
+  const { userChats, isUserChatsLoading, newMessage, currentChat } = useSelector((state) => state.chat);
+  const [socket, setSocket] = useState(null);
+
+  useEffect(() => {
+    if (user) {
+      const newSocket = io("http://localhost:3001");
+      // dispatch(setSocket(newSocket));
+      setSocket(newSocket);
+      return () => {
+        newSocket.disconnect();
+      };
+    }
+  }, [user]);
+
+  // add online users
+  useEffect(() => {
+    if (socket) {
+      socket.emit("addNewUser", user?._id);
+      socket.on("getOnlineUsers", (res) => {
+        dispatch(setOnlineUsers(res));
+      });
+      return () => {
+        socket.off("getOnlineUsers");
+      };
+    }
+  }, [socket]);
+
+  // add online users
+  useEffect(() => {
+    if (newMessage) {
+      const recipientId = currentChat?.members.find((id) => id !== user?._id);
+      socket.emit("sendMessage", { ...newMessage, recipientId });
+    }
+  }, [newMessage]);
+
+  // add online users
+  useEffect(() => {
+    if (socket) {
+      socket.on("getMessage", (res) => {
+        if (currentChat?._id !== res.chatId) {
+          return;
+        }
+        dispatch(addMessage(res));
+      });
+    }
+  }, [socket, currentChat]);
 
   /**
    * Fetches user's chats when component mounts or user changes

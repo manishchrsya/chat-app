@@ -7,7 +7,7 @@
  * @component
  */
 
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchPotentialChats,
@@ -27,7 +27,7 @@ import {
 const PotentialChats = () => {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
-  const { potentialChats, userChats } = useSelector((state) => state.chat);
+  const { potentialChats, userChats, onlineUsers } = useSelector((state) => state.chat);
 
   /**
    * Fetches potential chat partners when:
@@ -40,6 +40,11 @@ const PotentialChats = () => {
       dispatch(fetchPotentialChats(userChats, user._id));
     }
   }, [user?._id, userChats, dispatch]);
+
+  const currentUserOnline = useCallback((currentUserId) => {
+    const isOnline = onlineUsers.some((user) => user.userId === currentUserId);
+    return isOnline;
+  }, [onlineUsers]);
 
   return (
     <div className="all-users">
@@ -57,9 +62,9 @@ const PotentialChats = () => {
               }
             >
               {/* Display user name */}
-              {user.name}
+              {currentUser.name}
               {/* Online status indicator */}
-              <span className="user-online" />
+              <span className={`${currentUserOnline(currentUser?._id) ? "user-online" : ""}`} />
             </div>
           );
         })}
