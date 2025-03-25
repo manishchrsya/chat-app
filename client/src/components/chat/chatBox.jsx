@@ -7,13 +7,14 @@
  * @component
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useFetchRecipientUser } from "../../hooks/useFetchRecipient";
 import { fetchMessages, sendTextMessage } from "../../store/thunks/chatThunks";
 import moment from "moment";
 import { Stack } from "react-bootstrap";
 import InputEmoji from "react-input-emoji";
+import { setUsersTyping } from "../../store/slices/chatSlice";
 
 /**
  * ChatBox Component
@@ -25,14 +26,57 @@ import InputEmoji from "react-input-emoji";
  *
  * @returns {JSX.Element} The rendered ChatBox component
  */
-const ChatBox = () => {
+const ChatBox = ({ socket }) => {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
-  const chat = useSelector((state) => state.chat);
-  const { currentChat, messages, isMessagesLoading } = chat ?? {};
+  const { currentChat, messages, isMessagesLoading, usersTyping } = useSelector((state) => state.chat);
   const { recipientUser } = useFetchRecipientUser(currentChat, user);
   const [textMessage, setTextMessage] = useState("");
-  // console.log("chat", chat);
+
+  const chatboxRef = useRef();
+
+  /**
+   * user is typing
+   * */
+
+  useEffect(() => {
+    if (textMessage && user?._id && recipientUser?._id && currentChat?._id) {
+      socket.emit("setTypingStatus", { userId: user?._id, recipientId: recipientUser?._id, isTyping: true });
+    }
+  }, [textMessage]);
+
+
+  useEffect(() => {
+    if (socket) {
+      socket.on("getTypingStatus", (resp) => {
+        console.log("resp", resp);
+        if (resp.recipientId === user._id) {
+          console.log("dispatching the response to store");
+          dispatch(setUsersTyping(resp));
+        }
+      });
+    }
+  }, [socket, currentChat]);
+
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (user?._id && recipientUser?._id && currentChat?._id) {
+        socket.emit("setTypingStatus", { userId: user?._id, recipientId: recipientUser?._id, isTyping: false });
+      }
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [textMessage]);
+
+
+  // this is for auto scroll to the bottom
+  useEffect(() => {
+    if (chatboxRef.current) {
+      chatboxRef.current.scrollTop = chatboxRef.current.scrollHeight;
+    }
+  }, [messages]); // Runs whenever messages update
+
   /**
    * Fetches chat messages when:
    * - A new chat is selected
@@ -47,6 +91,10 @@ const ChatBox = () => {
   const handleSend = useCallback(() => {
     dispatch(sendTextMessage(textMessage, user, currentChat?._id, setTextMessage));
   }, [currentChat?._id, dispatch, textMessage, user]);
+
+  const isCurrentRecipientTyping = useMemo(() => {
+    return usersTyping.find((user) => user.userId === recipientUser._id)?.isTyping;
+  }, [recipientUser?._id, usersTyping]);
 
   // Display placeholder when no recipient is selected
   if (!recipientUser)
@@ -64,10 +112,11 @@ const ChatBox = () => {
   }
 
   return <Stack gap={4} className="chat-box">
-    <div className="chat-header">
+    <div className="chat-header" style={{ display: "flex", flexDirection: "column" }}>
       <strong>{recipientUser?.name}</strong>
+      <span style={{ fontSize: 10, height: 16 }}>{isCurrentRecipientTyping ? `${recipientUser?.name || "User"} is Typing...` : ""}  </span>
     </div>
-    <Stack gap={3} className="messages">{messages && messages.map((message, index) => <Stack className={`${message?.senderId === user?._id ? "message self align-self-end flex-grow-0" : "message align-self-start flex-grow-0"}`} key={index}>
+    <Stack ref={chatboxRef} gap={3} className="messages">{messages && messages.map((message, index) => <Stack className={`${message?.senderId === user?._id ? "message self align-self-end flex-grow-0" : "message align-self-start flex-grow-0"}`} key={index}>
       <span>{message.text}</span>
       <span className="message-footer">{moment(message.createdAt).calendar()}</span>
     </Stack>)}</Stack>

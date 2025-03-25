@@ -30,6 +30,7 @@ const initialState = {
   socket: null,
   onlineUsers: [],
   newMessage: null,
+  usersTyping: []
 };
 
 /**
@@ -125,6 +126,19 @@ const chatSlice = createSlice({
     },
     setNewMessage: (state, action) => {
       state.newMessage = action.payload;
+    },
+    setUsersTyping: (state, action) => {
+      const prevUsers = [...state.usersTyping];
+      const currentUserIndex = prevUsers.findIndex((user) => user?.userId === action.payload?.userId);
+      if (currentUserIndex > -1) {
+        const currentUser = prevUsers[currentUserIndex];
+        if (currentUser?.isTyping !== action.payload?.isTyping) {
+          prevUsers.splice(currentUserIndex, 1, action.payload);
+          state.usersTyping = prevUsers;
+        }
+      } else {
+        state.usersTyping = [...prevUsers, action.payload];
+      }
     }
   },
 });
@@ -145,6 +159,7 @@ export const {
   addMessage,
   setSocket,
   setOnlineUsers,
+  setUsersTyping
 } = chatSlice.actions;
 
 export default chatSlice.reducer;

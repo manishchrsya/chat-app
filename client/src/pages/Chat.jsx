@@ -105,7 +105,7 @@ const Chat = () => {
             })}
           </Stack>
           {/* Active chat box */}
-          <ChatBox />
+          <ChatBox socket={socket} />
         </Stack>
       )}
     </Container>

@@ -18,7 +18,6 @@ io.on("connection", (socket) => {
             });
 
         }
-        console.log("onlineUsers", onlineUsers);
         io.emit("getOnlineUsers", onlineUsers);
     });
 
@@ -27,6 +26,16 @@ io.on("connection", (socket) => {
 
         if (recipient) {
             io.to(recipient.socketId).emit("getMessage", message);
+        }
+    });
+
+    // user is typing
+
+    socket.on("setTypingStatus", (meta) => {
+        console.log("meta", meta);
+        const recipient = onlineUsers.find((user) => user.userId === meta.recipientId);
+        if (recipient) {
+            io.to(recipient.socketId).emit("getTypingStatus", meta);
         }
     });
 
